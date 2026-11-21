@@ -1,0 +1,311 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>牙科材料庫存</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 工作台式單欄 — 頂部警示摘要 → 篩選列 → 品項清單（手機轉卡片）→ 異動紀錄 */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --line:#d9e2e2; --fg:#16302f; --muted:#5d7472;
+  --accent:#0d6b67; --accent-soft:#dcefed; --on-accent:#ffffff;
+  --warn:#9a5b00; --warn-soft:#fbeed6; --bad:#b3261e; --bad-soft:#fbe3e0; --ok:#2e7d4f;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1918; --surface:#162322; --line:#2a3b3a; --fg:#e3efee; --muted:#93aaa8;
+  --accent:#5cc2bb; --accent-soft:#1d3634; --on-accent:#06201e;
+  --warn:#f0b45a; --warn-soft:#3a2c14; --bad:#ff8a80; --bad-soft:#3d1b19; --ok:#7fd3a0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1918; --surface:#162322; --line:#2a3b3a; --fg:#e3efee; --muted:#93aaa8;
+  --accent:#5cc2bb; --accent-soft:#1d3634; --on-accent:#06201e;
+  --warn:#f0b45a; --warn-soft:#3a2c14; --bad:#ff8a80; --bad-soft:#3d1b19; --ok:#7fd3a0; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+h1{font-size:1.5rem;margin:0;font-weight:700;text-wrap:balance}
+.sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+h2{font-size:1rem;margin:0;font-weight:700}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:7px 14px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:500}
+.btn.sm{padding:4px 10px;font-size:.85rem}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;text-align:left;cursor:pointer}
+.stat[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.stat b{display:block;font-family:var(--font-data);font-size:1.6rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:.82rem;color:var(--muted)}
+.stat.bad b{color:var(--bad)} .stat.warn b{color:var(--warn)}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters input{flex:1 1 220px;min-width:0}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;width:100%}
+.filters select{width:auto}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(0,2.4fr) minmax(0,1fr) 110px minmax(0,1.2fr) 190px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row.head{font-size:.78rem;color:var(--muted);letter-spacing:.04em;background:var(--bg)}
+.name{font-weight:500}
+.meta{font-size:.8rem;color:var(--muted)}
+.mono{font-family:var(--font-data);font-variant-numeric:tabular-nums}
+.qty{font-family:var(--font-data);font-size:1.15rem;font-variant-numeric:tabular-nums}
+.qty small{font-family:var(--font-body);font-size:.78rem;color:var(--muted);margin-left:3px}
+.pill{display:inline-block;font-size:.74rem;padding:1px 8px;border-radius:999px;margin-top:2px;margin-right:4px}
+.pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.ok{background:var(--accent-soft);color:var(--accent)}
+.row .actions{justify-content:flex-end}
+.empty{padding:36px 20px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+.empty p{margin:0;max-width:46ch}
+.log{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.log div{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;padding:8px 14px;border-top:1px solid var(--line);font-size:.86rem}
+.log div:first-child{border-top:0}
+.in{color:var(--ok)} .out{color:var(--bad)} .adj{color:var(--warn)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);padding:0;width:min(560px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,25,24,.45)}
+form.f{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+form.f label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted);min-width:0}
+form.f .full{grid-column:1/-1}
+form.f .foot{grid-column:1/-1;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px}
+.err{color:var(--bad);font-size:.85rem;grid-column:1/-1;margin:0;min-height:1.2em}
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:var(--r);padding:10px 14px;font-size:.88rem}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:.88rem;z-index:20}
+@media (max-width:760px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row.head{display:none}
+  .row{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px}
+  .row .c-cat{display:none}
+  .row .c-exp{grid-column:1/-1}
+  .row .actions{grid-column:1/-1;justify-content:flex-start}
+  form.f{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>牙科材料庫存</h1>
+      <p class="sub" id="who">連線中…</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="exportBtn" type="button" hidden>匯出盤點 CSV</button>
+      <button class="btn primary" id="addBtn" type="button" disabled>＋ 新增品項</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="stats" aria-label="庫存警示">
+    <button class="stat" type="button" data-f="all" aria-pressed="true"><b id="sAll">–</b><span>品項總數</span></button>
+    <button class="stat bad" type="button" data-f="low" aria-pressed="false"><b id="sLow">–</b><span>低於安全庫存</span></button>
+    <button class="stat warn" type="button" data-f="soon" aria-pressed="false"><b id="sSoon">–</b><span>60 天內到期</span></button>
+    <button class="stat bad" type="button" data-f="expired" aria-pressed="false"><b id="sExp">–</b><span>已過期</span></button>
+  </section>
+
+  <div class="filters">
+    <input id="q" type="search" placeholder="搜尋品名、批號、廠商、存放位置">
+    <select id="cat" aria-label="分類"><option value="">全部分類</option></select>
+  </div>
+
+  <section class="list" id="list" aria-live="polite">
+    <div class="empty"><p>正在載入庫存資料…</p></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2>最近異動</h2>
+    <div class="log" id="log"><div><span></span><span class="meta">還沒有進貨或領用紀錄</span><span></span></div></div>
+  </section>
+</div>
+
+<dialog id="itemDlg">
+  <form class="f" id="itemForm">
+    <h2 class="full" id="itemTitle">新增品項</h2>
+    <label class="full">品名<input id="fName" required maxlength="80" placeholder="例：光聚合複合樹脂 A2"></label>
+    <label>分類<select id="fCat"></select></label>
+    <label>單位<input id="fUnit" maxlength="10" placeholder="支／盒／包" value="盒"></label>
+    <label>目前數量<input id="fQty" type="number" min="0" step="1" value="0"></label>
+    <label>安全庫存（低於即警示）<input id="fMin" type="number" min="0" step="1" value="2"></label>
+    <label>批號<input id="fLot" maxlength="40"></label>
+    <label>有效期限<input id="fExp" type="date"></label>
+    <label>存放位置<input id="fLoc" maxlength="40" placeholder="例：診間二 上櫃"></label>
+    <label>廠商<input id="fSup" maxlength="40"></label>
+    <p class="err" id="itemErr"></p>
+    <div class="foot">
+      <button class="btn" type="button" id="delBtn" hidden>刪除品項</button>
+      <span class="actions" style="margin-left:auto">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn primary" type="submit">儲存</button>
+      </span>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="moveDlg">
+  <form class="f" id="moveForm">
+    <h2 class="full" id="moveTitle">領用</h2>
+    <p class="full meta" id="moveInfo" style="margin:0"></p>
+    <label>類型<select id="mType"><option value="out">領用（扣庫存）</option><option value="in">進貨（加庫存）</option><option value="adjust">盤點校正（設為實際數量）</option></select></label>
+    <label id="mNLabel">數量<input id="mN" type="number" min="0" step="1" value="1" required></label>
+    <label class="full">備註<input id="mNote" maxlength="80" placeholder="例：王醫師 根管治療／新批號 2411A"></label>
+    <p class="err" id="moveErr"></p>
+    <div class="foot"><span></span><span class="actions"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="submit">確認</button></span></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const CATS=["印模材料","充填／樹脂","黏著劑／酸蝕","根管治療","麻醉藥品","植牙耗材","矯正耗材","感控／消毒","一次性耗材","其他"];
+const TEMPLATE=[
+ ["藻酸鹽印模材","印模材料","包",3],["矽膠印模材（輕體）","印模材料","支",4],["矽膠印模材（重體）","印模材料","罐",2],
+ ["光聚合複合樹脂 A2","充填／樹脂","支",3],["光聚合複合樹脂 A3","充填／樹脂","支",3],["玻璃離子充填材","充填／樹脂","盒",1],
+ ["牙科黏著劑","黏著劑／酸蝕","瓶",1],["磷酸酸蝕劑","黏著劑／酸蝕","支",3],
+ ["根管銼針 K-file","根管治療","盒",2],["次氯酸鈉沖洗液","根管治療","瓶",2],["牙膠針","根管治療","盒",2],
+ ["2% Lidocaine 局部麻醉卡普","麻醉藥品","盒",2],["表面麻醉膠","麻醉藥品","罐",1],
+ ["縫線 4-0","植牙耗材","盒",1],["檢診手套 M","一次性耗材","盒",5],["醫用口罩","一次性耗材","盒",5],
+ ["吸唾管","一次性耗材","包",4],["滅菌包裝袋","感控／消毒","盒",2],["表面消毒濕巾","感控／消毒","罐",3]
+];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let db=null,user=null,me=null,items=[],logs=[],filt="all",canWrite=true,editId=null,moveId=null,downloads=null;
+
+CATS.forEach(c=>{$("#cat").add(new Option(c,c));$("#fCat").add(new Option(c,c))});
+
+function today(){const d=new Date();d.setHours(0,0,0,0);return d}
+function daysLeft(exp){if(!exp)return null;const d=new Date(exp+"T00:00:00");return Math.round((d-today())/864e5)}
+function status(it){const dl=daysLeft(it.expiry);return{low:Number(it.qty)<=Number(it.minQty||0),expired:dl!==null&&dl<0,soon:dl!==null&&dl>=0&&dl<=60,dl}}
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2200)}
+
+function render(){
+  const st=items.map(it=>[it,status(it)]);
+  $("#sAll").textContent=items.length;
+  $("#sLow").textContent=st.filter(x=>x[1].low).length;
+  $("#sSoon").textContent=st.filter(x=>x[1].soon).length;
+  $("#sExp").textContent=st.filter(x=>x[1].expired).length;
+  document.querySelectorAll(".stat").forEach(b=>b.setAttribute("aria-pressed",b.dataset.f===filt));
+  const q=$("#q").value.trim().toLowerCase(),cat=$("#cat").value;
+  let rows=st.filter(([it,s])=>(filt==="all"||s[filt])&&(!cat||it.category===cat)&&(!q||[it.name,it.lot,it.supplier,it.location].join(" ").toLowerCase().includes(q)));
+  rows.sort((a,b)=>(b[1].expired-a[1].expired)||(b[1].low-a[1].low)||(b[1].soon-a[1].soon)||String(a[0].name).localeCompare(String(b[0].name),"zh-Hant"));
+  const list=$("#list");
+  if(!items.length){
+    list.innerHTML=`<div class="empty"><p><strong>還沒有任何品項。</strong></p><p>新增第一個材料，或一鍵載入 19 項牙科常用耗材範本（數量先設為 0，盤點後再填入實際數量）。</p><div class="actions"><button class="btn primary" type="button" id="tplBtn" ${canWrite?"":"disabled"}>載入常用品項範本</button><button class="btn" type="button" id="addBtn2" ${canWrite?"":"disabled"}>自己新增</button></div></div>`;
+    $("#tplBtn").onclick=loadTemplate;$("#addBtn2").onclick=()=>openItem(null);return;
+  }
+  if(!rows.length){list.innerHTML=`<div class="empty"><p>沒有符合條件的品項。</p></div>`;return}
+  list.innerHTML=`<div class="row head"><span>品名／批號</span><span class="c-cat">分類／位置</span><span>庫存</span><span class="c-exp">有效期限</span><span></span></div>`+
+  rows.map(([it,s])=>{
+    const pills=(s.low?`<span class="pill bad">需補貨（安全量 ${esc(it.minQty)}）</span>`:"");
+    const exp=it.expiry?`<span class="mono">${esc(it.expiry)}</span><br>${s.expired?`<span class="pill bad">已過期 ${-s.dl} 天</span>`:s.soon?`<span class="pill warn">剩 ${s.dl} 天</span>`:`<span class="meta">剩 ${s.dl} 天</span>`}`:`<span class="meta">未填效期</span>`;
+    return `<div class="row"><div><div class="name">${esc(it.name)}</div><div class="meta">${it.lot?`批號 <span class="mono">${esc(it.lot)}</span>`:""}${it.supplier?`　${esc(it.supplier)}`:""}</div></div>
+      <div class="c-cat meta">${esc(it.category||"其他")}${it.location?`<br>${esc(it.location)}`:""}</div>
+      <div><span class="qty">${esc(it.qty)}<small>${esc(it.unit||"")}</small></span><br>${pills}</div>
+      <div class="c-exp">${exp}</div>
+      <div class="actions"><button class="btn sm" data-m="out" data-id="${it._id}" ${canWrite?"":"disabled"}>領用</button><button class="btn sm" data-m="in" data-id="${it._id}" ${canWrite?"":"disabled"}>進貨</button><button class="btn sm" data-e="${it._id}" ${canWrite?"":"disabled"}>編輯</button></div></div>`}).join("");
+}
+
+async function renderLog(){
+  const el=$("#log");
+  if(!logs.length){el.innerHTML=`<div><span></span><span class="meta">還沒有進貨或領用紀錄</span><span></span></div>`;return}
+  let names={};
+  try{const ids=[...new Set(logs.map(l=>l.by).filter(Boolean))];if(user&&ids.length)names=await user.profiles(ids)}catch(e){}
+  el.innerHTML=logs.map(l=>{
+    const d=new Date(l.at),t=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const cls=l.type==="in"?"in":l.type==="out"?"out":"adj",lab=l.type==="in"?"進貨":l.type==="out"?"領用":"盤點";
+    const who=(names[l.by]&&names[l.by].name)||"同仁";
+    return `<div><span class="mono meta">${t}</span><span><span class="${cls}">${lab}</span>　${esc(l.itemName)} <span class="mono">${l.type==="adjust"?"→ "+esc(l.qtyAfter):(l.delta>0?"+":"")+esc(l.delta)}</span>${l.note?` <span class="meta">· ${esc(l.note)}</span>`:""}</span><span class="meta">${esc(who)}</span></div>`}).join("");
+}
+
+function openItem(id){
+  editId=id;const it=items.find(x=>x._id===id)||{};
+  $("#itemTitle").textContent=id?"編輯品項":"新增品項";
+  $("#fName").value=it.name||"";$("#fCat").value=it.category||CATS[0];$("#fUnit").value=it.unit||"盒";
+  $("#fQty").value=it.qty??0;$("#fQty").disabled=!!id;$("#fMin").value=it.minQty??2;
+  $("#fLot").value=it.lot||"";$("#fExp").value=it.expiry||"";$("#fLoc").value=it.location||"";$("#fSup").value=it.supplier||"";
+  $("#delBtn").hidden=!id;$("#delBtn").textContent="刪除品項";$("#delBtn").dataset.armed="";$("#itemErr").textContent="";
+  $("#itemDlg").showModal();
+}
+function openMove(id,type){
+  moveId=id;const it=items.find(x=>x._id===id);
+  $("#mType").value=type;$("#mN").value=type==="adjust"?it.qty:1;$("#mNote").value="";$("#moveErr").textContent="";
+  $("#moveTitle").textContent=it.name;$("#moveInfo").textContent=`目前庫存 ${it.qty} ${it.unit||""}`;
+  syncMoveLabel();$("#moveDlg").showModal();$("#mN").select();
+}
+function syncMoveLabel(){$("#mNLabel").firstChild.textContent=$("#mType").value==="adjust"?"實際盤點數量":"數量"}
+
+async function saveItem(e){
+  e.preventDefault();
+  const name=$("#fName").value.trim();if(!name){$("#itemErr").textContent="請填寫品名。";return}
+  const body={name,category:$("#fCat").value,unit:$("#fUnit").value.trim(),minQty:Math.max(0,parseInt($("#fMin").value||"0",10)),
+    lot:$("#fLot").value.trim(),expiry:$("#fExp").value,location:$("#fLoc").value.trim(),supplier:$("#fSup").value.trim(),updatedAt:Date.now()};
+  try{
+    if(editId){await db.doc("items/"+editId).update(body)}
+    else{body.qty=Math.max(0,parseInt($("#fQty").value||"0",10));body.createdAt=Date.now();await db.collection("items").add(body)}
+    $("#itemDlg").close();toast(editId?"已更新品項":"已新增品項");
+  }catch(err){$("#itemErr").textContent=errText(err)}
+}
+async function delItem(){
+  const b=$("#delBtn");
+  if(!b.dataset.armed){b.dataset.armed="1";b.textContent="再按一次確認刪除";return}
+  try{await db.doc("items/"+editId).delete();$("#itemDlg").close();toast("已刪除品項")}catch(err){$("#itemErr").textContent=errText(err)}
+}
+async function saveMove(e){
+  e.preventDefault();
+  const it=items.find(x=>x._id===moveId),type=$("#mType").value,n=parseInt($("#mN").value||"0",10);
+  if(!(n>=0)||(type!=="adjust"&&n===0)){$("#moveErr").textContent="請輸入大於 0 的數量。";return}
+  const cur=Number(it.qty)||0,after=type==="in"?cur+n:type==="out"?cur-n:n;
+  if(after<0){$("#moveErr").textContent=`庫存只剩 ${cur}，無法領用 ${n}。請先盤點校正。`;return}
+  try{
+    await db.doc("items/"+moveId).update({qty:after,updatedAt:Date.now()});
+    await db.collection("logs").add({itemId:moveId,itemName:it.name,type,delta:after-cur,qtyAfter:after,note:$("#mNote").value.trim(),by:me||"",at:Date.now()});
+    $("#moveDlg").close();toast(type==="out"?`已領用，剩 ${after}`:type==="in"?`已進貨，共 ${after}`:`已校正為 ${after}`);
+  }catch(err){$("#moveErr").textContent=errText(err)}
+}
+async function loadTemplate(){
+  const b=$("#tplBtn");b.disabled=true;b.textContent="載入中…";
+  try{for(const [name,category,unit,minQty] of TEMPLATE){await db.collection("items").add({name,category,unit,minQty,qty:0,lot:"",expiry:"",location:"",supplier:"",createdAt:Date.now(),updatedAt:Date.now()})}toast("已載入範本，請逐項盤點填入數量")}
+  catch(err){b.disabled=false;b.textContent="載入常用品項範本";toast(errText(err))}
+}
+function errText(err){const c=err&&err.code;return c==="permission_denied"?"你目前只有檢視權限，請請管理者開放編輯。":"儲存失敗，請確認網路後再試一次。"}
+
+async function exportCsv(){
+  const head=["品名","分類","數量","單位","安全庫存","批號","有效期限","存放位置","廠商","狀態"];
+  const lines=[head].concat(items.map(it=>{const s=status(it);return[it.name,it.category,it.qty,it.unit,it.minQty,it.lot,it.expiry,it.location,it.supplier,[s.expired?"已過期":"",s.soon?"即期":"",s.low?"需補貨":""].filter(Boolean).join("/")]}));
+  const csv="﻿"+lines.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const d=new Date(),fn=`牙科材料盤點_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}.csv`;
+  try{await downloads.save({filename:fn,data:new Blob([csv],{type:"text/csv"})})}catch(e){}
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.f){filt=t.dataset.f;render()}
+  else if(t.dataset.m)openMove(t.dataset.id,t.dataset.m);
+  else if(t.dataset.e)openItem(t.dataset.e);
+  else if(t.hasAttribute("data-close"))t.closest("dialog").close();
+});
+$("#q").addEventListener("input",render);$("#cat").addEventListener("change",render);
+$("#addBtn").onclick=()=>openItem(null);
+$("#itemForm").addEventListener("submit",saveItem);$("#delBtn").onclick=delItem;
+$("#moveForm").addEventListener("submit",saveMove);$("#mType").addEventListener("change",()=>{syncMoveLabel();if($("#mType").value==="adjust")$("#mN").value=items.find(x=>x._id===moveId).qty});
+$("#exportBtn").onclick=exportCsv;
+
+function fail(msg){const n=$("#notice");n.textContent=msg;n.hidden=false;$("#who").textContent="未連線";$("#list").innerHTML=`<div class="empty"><p>${esc(msg)}</p></div>`}
+
+(async()=>{
+  const timer=setTimeout(()=>fail("資料庫沒有回應。請重新整理頁面，或確認已登入 claude.ai。"),10000);
+  db=await claude.use("db");
+  if(!db){clearTimeout(timer);fail("請先登入 claude.ai，才能讀取與登記診所的共用庫存。");return}
+  user=await claude.use("user");
+  try{if(user){me=await user.id();const v=await user.me();$("#who").textContent=`${v.name||"已登入"}・資料即時同步給所有同仁`;const w=await user.can("data.write");canWrite=w!==false}}catch(e){}
+  if(!canWrite){const n=$("#notice");n.textContent="你目前是檢視權限，可以查詢庫存，但不能登記領用或進貨。";n.hidden=false}
+  $("#addBtn").disabled=!canWrite;
+  db.collection("items").onSnapshot(snap=>{clearTimeout(timer);items=snap.docs.map(d=>({...d.data(),_id:d.id}));render()},()=>{clearTimeout(timer);fail("讀取庫存失敗，請重新整理頁面。")});
+  db.collection("logs").orderBy("at","desc").limit(40).onSnapshot(snap=>{logs=snap.docs.map(d=>d.data());renderLog()},()=>{});
+  try{downloads=await claude.use("downloads");if(downloads)$("#exportBtn").hidden=false}catch(e){}
+})();
+</script>
+
+</body></html>
